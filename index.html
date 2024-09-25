@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幼儿汉诺塔游戏研究</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f8ff;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px;
+            max-width: 800px;
+            width: 100%;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        #game-container {
+            display: flex;
+            justify-content: space-around;
+            height: 300px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .tower {
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            width: 150px;
+            height: 250px;
+            position: relative;
+            cursor: pointer;
+        }
+        .pole {
+            width: 10px;
+            height: 200px;
+            background-color: #95a5a6;
+            position: absolute;
+            bottom: 15px;
+            z-index: 1;
+        }
+        .base {
+            width: 150px;
+            height: 15px;
+            background-color: #34495e;
+            position: absolute;
+            bottom: 0;
+            border-radius: 7.5px;
+        }
+        .disk-container {
+            position: absolute;
+            bottom: 15px;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            height: 200px;
+        }
+        .disk {
+            height: 25px;
+            border-radius: 12.5px;
+            margin: 2px;
+            cursor: pointer;
+            z-index: 2;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        .disk:hover {
+            transform: scale(1.05);
+        }
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        #controls button {
+            width: 30%;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 600px) {
+            #controls button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>幼儿汉诺塔游戏研究</h1>
+        
+        <div id="user-info-page" class="page active">
+            <h2>用户信息</h2>
+            <input type="text" id="name" placeholder="姓名" required>
+            <select id="gender" required>
+                <option value="">选择性别</option>
+                <option value="男">男</option>
+                <option value="女">女</option>
+            </select>
+            <input type="date" id="birthdate" required>
+            <input type="text" id="group" placeholder="组别" required>
+            <input type="text" id="class" placeholder="班级" required>
+            <button id="submit-info">提交信息</button>
+        </div>
+
+        <div id="instructions-page" class="page">
+            <h2>游戏说明</h2>
+            <p>欢迎参与汉诺塔游戏！游戏规则如下：</p>
+            <ol>
+                <li>游戏开始时，所有圆盘按从大到小的顺序叠在左侧柱子上。</li>
+                <li>目标是将所有圆盘移动到右侧柱子，保持从大到小的顺序。</li>
+                <li>每次只能移动一个圆盘。</li>
+                <li>大圆盘不能放在小圆盘上面。</li>
+                <li>点击想要移动的圆盘，然后点击目标柱子来移动圆盘。</li>
+            </ol>
+            <p>准备好了吗？让我们开始吧！</p>
+            <button id="go-to-settings">进入游戏设置</button>
+        </div>
+
+        <div id="game-settings-page" class="page">
+            <h2>游戏设置</h2>
+            <select id="difficulty">
+                <option value="3">3层</option>
+                <option value="4">4层</option>
+            </select>
+            <input type="number" id="game-count" min="1" value="3" placeholder="游戏次数">
+            <button id="start-btn">开始游戏</button>
+        </div>
+
+        <div id="game-page" class="page">
+            <div id="game-container">
+                <div class="tower" id="tower1">
+                    <div class="pole"></div>
+                    <div class="base"></div>
+                    <div class="disk-container"></div>
+                </div>
+                <div class="tower" id="tower2">
+                    <div class="pole"></div>
+                    <div class="base"></div>
+                    <div class="disk-container"></div>
+                </div>
+                <div class="tower" id="tower3">
+                    <div class="pole"></div>
+                    <div class="base"></div>
+                    <div class="disk-container"></div>
+                </div>
+            </div>
+            <div id="controls">
+                <button id="reset-btn">重置</button>
+                <button id="home-btn">返回主页</button>
+                <button id="export-btn" style="display:none;">导出数据</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gameData = [];
+        let currentGame = 1;
+        let totalGames = 3;
+        let startTime, moveStartTime;
+        let selectedDisk = null;
+        let moveCount = 0;
+        let difficulty = 3;
+        let userInfo = {};
+
+        const towers = [
+            document.getElementById('tower1'),
+            document.getElementById('tower2'),
+            document.getElementById('tower3')
+        ];
+
+        const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f'];
+        const diskLetters = ['A', 'B', 'C', 'D'];
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        document.getElementById('submit-info').addEventListener('click', function() {
+            const name = document.getElementById('name').value;
+            const gender = document.getElementById('gender').value;
+            const birthdate = document.getElementById('birthdate').value;
+            const group = document.getElementById('group').value;
+            const classValue = document.getElementById('class').value;
+
+            if (name && gender && birthdate && group && classValue) {
+                userInfo = { name, gender, birthdate, group, class: classValue };
+                showPage('instructions-page');
+            } else {
+                alert('请填写所有必填项！');
+            }
+        });
+
+        document.getElementById('go-to-settings').addEventListener('click', function() {
+            showPage('game-settings-page');
+        });
+
+        function createDisk(size) {
+            const disk = document.createElement('div');
+            disk.classList.add('disk');
+            disk.style.width = `${size * 30}px`;
+            disk.style.backgroundColor = colors[size - 1];
+            disk.dataset.letter = diskLetters[size - 1];
+            return disk;
+        }
+
+        function initializeGame() {
+            towers.forEach(tower => tower.querySelector('.disk-container').innerHTML = '');
+            for (let i = difficulty; i > 0; i--) {
+                towers[0].querySelector('.disk-container').appendChild(createDisk(i));
+            }
+            moveCount = 0;
+            startTime = new Date();
+            document.getElementById('export-btn').style.display = 'none';
+        }
+
+        function selectDisk(disk) {
+            if (selectedDisk) {
+                selectedDisk.style.opacity = '1';
+            }
+            selectedDisk = disk;
+            selectedDisk.style.opacity = '0.6';
+            moveStartTime = new Date();
+        }
+
+        function moveDisk(toTower) {
+            if (!selectedDisk) return;
+
+            const fromTower = selectedDisk.closest('.tower');
+            if (fromTower === toTower) {
+                selectedDisk.style.opacity = '1';
+                selectedDisk = null;
+                return;
+            }
+
+            const toContainer = toTower.querySelector('.disk-container');
+            if (toContainer.children.length === 0 || 
+                parseInt(selectedDisk.style.width) < parseInt(toContainer.lastElementChild.style.width)) {
+                toContainer.appendChild(selectedDisk);
+                moveCount++;
+
+                const moveEndTime = new Date();
+                const moveData = {
+                    game: currentGame,
+                    move: moveCount,
+                    from: towers.indexOf(fromTower) + 1,
+                    to: towers.indexOf(toTower) + 1,
+                    disk: selectedDisk.dataset.letter,
+                    timeElapsed: (moveEndTime - moveStartTime) / 1000
+                };
+                gameData.push(moveData);
+
+                if (towers[2].querySelector('.disk-container').children.length === difficulty) {
+                    const endTime = new Date();
+                    alert(`恭喜完成第${currentGame}次游戏！用时：${(endTime - startTime) / 1000}秒，移动次数：${moveCount}`);
+                    if (currentGame < totalGames) {
+                        currentGame++;
+                        setTimeout(initializeGame, 1000);
+                    } else {
+                        alert('您已完成所有游戏！');
+                        document.getElementById('export-btn').style.display = 'inline';
+                    }
+                }
+            }
+
+            selectedDisk.style.opacity = '1';
+            selectedDisk = null;
+        }
+
+        towers.forEach(tower => {
+            tower.addEventListener('click', (e) => {
+                const clickedDisk = e.target.closest('.disk');
+                if (clickedDisk && clickedDisk === tower.querySelector('.disk-container').lastElementChild) {
+                    selectDisk(clickedDisk);
+                } else {
+                    moveDisk(tower);
+                }
+            });
+        });
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            difficulty = parseInt(document.getElementById('difficulty').value);
+            totalGames = parseInt(document.getElementById('game-count').value);
+            gameData = [];
+            currentGame = 1;
+            document.getElementById('export-btn').style.display = 'none';
+            showPage('game-page');
+            initializeGame();
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', initializeGame);
+
+        document.getElementById('home-btn').addEventListener('click', () => {
+            if (confirm('确定要返回主页吗？当前游戏进度将丢失。')) {
+                showPage('user-info-page');
+            }
+        });
+
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const fullData = gameData.map(data => ({
+                ...userInfo,
+                ...data
+            }));
+            const ws = XLSX.utils.json_to_sheet(fullData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "游戏数据");
+            XLSX.writeFile(wb, "hanoi_tower_data.xlsx");
+        });
+    </script>
+</body>
+</html>
