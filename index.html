@@ -706,63 +706,283 @@
         }
 
         // 游戏结束处理
+        // 修改游戏结束处理函数
         function endGame(reason) {
             stopTimer();
+            
+            if (gameMode === 'adaptive') {
+                handleAdaptiveModeEnd(reason);
+            } else {
+                handleSingleModeEnd();
+            }
+        }
+
+
+        // 自适应模式结束处理
+        function handleAdaptiveModeEnd(reason) {
+            const endTime = new Date();
+            
+            // 记录当前层级的结束时间
+            if (levelTimes[currentLevel]) {
+                levelTimes[currentLevel].endTime = endTime;
+                levelTimes[currentLevel].totalTime = 
+                    (endTime - levelTimes[currentLevel].startTime) / 1000;
+            }
+            
+            // 根据不同结束原因显示不同消息
             let message = '';
+            const lastCompletedLevel = currentLevel - (reason === 'complete' ? 0 : 1);
             
             switch(reason) {
                 case 'timeout':
-                    message = `时间到！您成功完成了 ${currentLevel - 1} 层`;
+                    message = `时间到！您成功完成了 ${lastCompletedLevel} 层`;
                     break;
                 case 'give-up':
-                    message = `游戏结束！您成功完成了 ${currentLevel - 1} 层`;
+                    message = `游戏结束！您成功完成了 ${lastCompletedLevel} 层`;
                     break;
                 case 'complete':
                     message = `恭喜！您完成了所有 ${currentLevel} 层的挑战！`;
                     break;
             }
             
+            // 确保数据完整性
+            finalizeAdaptiveModeData(reason);
+            
             alert(message);
-            document.getElementById('export-btn').style.display = 'inline-block';
+            
+            // 显示导出按钮并启用它
+            const exportBtn = document.getElementById('export-btn');
+            exportBtn.style.display = 'inline-block';
+            exportBtn.disabled = false;
             
             // 自动导出数据
-            setTimeout(exportGameData, 500);
+            setTimeout(() => {
+                try {
+                    exportAdaptiveModeData();
+                } catch (error) {
+                    console.error('导出数据时出错:', error);
+                    alert('自动导出数据失败，您可以点击"导出数据"按钮手动导出。');
+                }
+            }, 500);
         }
+
+
+        // 完成自适应模式数据的处理
+        function finalizeAdaptiveModeData(reason) {
+            // 确定最后完成的层级
+            const lastCompleteLevel = reason === 'complete' ? currentLevel : currentLevel - 1;
+            
+            // 确保所有已完成层级的数据结构完整
+            for (let level = 2; level <= lastCompleteLevel; level++) {
+                if (!levelData[level]) {
+                    levelData[level] = [];
+                }
+                
+                if (!levelTimes[level]) {
+                    levelTimes[level] = {
+                        startTime: null,
+                        endTime: null,
+                        totalTime: 0
+                    };
+                }
+            }
+            
+            // 处理当前未完成层级的数据
+            if ((reason === 'give-up' || reason === 'timeout') && currentLevel > lastCompleteLevel) {
+                const currentLevelMoves = gameData.filter(data => data.level === currentLevel);
+                
+                if (currentLevelMoves.length > 0) {
+                    if (!levelData[currentLevel]) {
+                        levelData[currentLevel] = [];
+                    }
+                    if (!levelTimes[currentLevel]) {
+                        levelTimes[currentLevel] = {
+                            startTime: levelStartTime || startTime,
+                            endTime: new Date(),
+                            totalTime: 0
+                        };
+                    }
+                    // 添加未完成层级的移动数据
+                    levelData[currentLevel].push(...currentLevelMoves);
+                }
+            }
+            
+            // 计算每个层级的总时间
+            Object.keys(levelTimes).forEach(level => {
+                if (levelTimes[level].startTime && levelTimes[level].endTime) {
+                    levelTimes[level].totalTime = 
+                        (levelTimes[level].endTime - levelTimes[level].startTime) / 1000;
+                }
+            });
+        }
+        
+        // 导出自适应模式数据
+        function exportAdaptiveModeData() {
+            const levelStatistics = calculateLevelStatistics();
+            const overallStats = calculateOverallStatistics();
+            
+            // 确保所有必要的数据都已准备好
+            if (!gameData.length || !Object.keys(levelTimes).length) {
+                alert('没有可导出的数据');
+                return;
+            }
+            
+            const fullData = gameData.map(data => {
+                const gameTimeStat = levelTimes[data.level] || {
+                    totalTime: 0,
+                    startTime: startTime,
+                    endTime: new Date()
+                };
+                
+                const moveStat = levelStatistics[data.level] || {
+                    totalMoves: 0,
+                    totalTime: 0,
+                    averageMoveTime: 0
+                };
+                
+                return {
+                    ...userInfo,
+                    mode: 'adaptive',
+                    maxLevel: maxDifficulty,
+                    timeLimit: timeLimit,
+                    currentLevel: data.level,
+                    levelIdentifier: `第${data.level}层`,
+                    ...data,
+                    timestamp: new Date().toISOString(),
+                    currentLevelTotalMoves: moveStat.totalMoves,
+                    currentLevelTotalTime: gameTimeStat.totalTime,
+                    currentLevelAverageMoveTime: moveStat.averageMoveTime,
+                    overallTotalMoves: overallStats.totalMoves,
+                    overallTotalTime: overallStats.totalTime,
+                    overallAverageMoveTime: overallStats.averageMoveTime
+                };
+            });
+            
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            
+            // 添加详细数据工作表
+            const ws1 = XLSX.utils.json_to_sheet(fullData);
+            XLSX.utils.book_append_sheet(wb, ws1, "详细数据");
+            
+            // 添加用户汇总工作表
+            const summaryData = {
+                姓名: userInfo.name,
+                性别: userInfo.gender,
+                生日: userInfo.birthdate,
+                班级: userInfo.group,
+                幼儿园: userInfo.class,
+                游戏模式: '自适应模式',
+                最高到达层数: currentLevel - 1,
+                设定最高层数: maxDifficulty,
+                总用时: overallStats.totalTime,
+                总步数: overallStats.totalMoves,
+                平均每步用时: overallStats.averageMoveTime
+            };
+            
+            const ws2 = XLSX.utils.json_to_sheet([summaryData]);
+            XLSX.utils.book_append_sheet(wb, ws2, "用户汇总");
+            
+            // 添加层级统计工作表
+            const levelSummary = Object.keys(levelTimes).map(level => ({
+                层数: `第${level}层`,
+                总步数: levelStatistics[level].totalMoves || 0,
+                总用时: levelStatistics[level].totalTime || 0,
+                平均每步用时: levelStatistics[level].averageMoveTime || 0
+            }));
+            
+            const ws3 = XLSX.utils.json_to_sheet(levelSummary);
+            XLSX.utils.book_append_sheet(wb, ws3, "层级统计");
+            
+            try {
+                // 导出文件
+                const fileName = `汉诺塔_${userInfo.name}_${userInfo.birthdate}_${userInfo.class}_自适应.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                console.log('数据导出成功');
+            } catch (error) {
+                console.error('导出数据失败:', error);
+                alert('导出数据失败，请重试');
+            }
+        }
+        
 
         // 导出游戏数据
         function exportGameData() {
             const levelStatistics = calculateLevelStatistics();
             const overallStats = calculateOverallStatistics();
             
-            const fullData = gameData.map(data => {
-                let gameTimeStat, moveStat;
-                
-                if (gameMode === 'adaptive') {
-                    gameTimeStat = levelTimes[data.level];
-                    moveStat = levelStatistics[data.level];
+            if (gameMode === 'adaptive') {
+                // 自适应模式数据处理
+                const fullData = gameData.map(data => {
+                    const gameTimeStat = levelTimes[data.level] || {
+                        totalTime: 0,
+                        startTime: startTime,
+                        endTime: new Date()
+                    };
+                    
+                    const moveStat = levelStatistics[data.level] || {
+                        totalMoves: 0,
+                        totalTime: 0,
+                        averageMoveTime: 0
+                    };
                     
                     return {
                         ...userInfo,
-                        mode: gameMode,
+                        mode: 'adaptive',
                         maxLevel: maxDifficulty,
                         timeLimit: timeLimit,
-                        currentLevel: data.level,  // 添加当前层数标记
-                        levelIdentifier: `第${data.level}层`,  // 添加层数标识
+                        currentLevel: data.level,
+                        levelIdentifier: `第${data.level}层`,
                         ...data,
                         timestamp: new Date().toISOString(),
-                        // 层级数据
                         currentLevelTotalMoves: moveStat.totalMoves,
-                        currentLevelTotalTime: gameTimeStat ? gameTimeStat.totalTime : null,
+                        currentLevelTotalTime: gameTimeStat.totalTime,
                         currentLevelAverageMoveTime: moveStat.averageMoveTime,
-                        // 总体数据
                         overallTotalMoves: overallStats.totalMoves,
                         overallTotalTime: overallStats.totalTime,
                         overallAverageMoveTime: overallStats.averageMoveTime
                     };
-                } else {
-                    // 单层模式的数据处理保持不变
-                    gameTimeStat = levelTimes[data.game];
-                    moveStat = {
+                });
+                
+                const summaryData = {
+                    姓名: userInfo.name,
+                    性别: userInfo.gender,
+                    生日: userInfo.birthdate,
+                    班级: userInfo.group,
+                    幼儿园: userInfo.class,
+                    游戏模式: '自适应模式',
+                    最高到达层数: currentLevel - 1,
+                    设定最高层数: maxDifficulty,
+                    总用时: overallStats.totalTime,
+                    总步数: overallStats.totalMoves,
+                    平均每步用时: overallStats.averageMoveTime
+                };
+                
+                const levelSummary = Object.keys(levelTimes).map(level => ({
+                    层数: `第${level}层`,
+                    总步数: levelStatistics[level].totalMoves || 0,
+                    总用时: levelStatistics[level].totalTime || 0,
+                    平均每步用时: levelStatistics[level].averageMoveTime || 0
+                }));
+                
+                // 创建工作簿并添加工作表
+                const wb = XLSX.utils.book_new();
+                const ws1 = XLSX.utils.json_to_sheet(fullData);
+                const ws2 = XLSX.utils.json_to_sheet([summaryData]);
+                const ws3 = XLSX.utils.json_to_sheet(levelSummary);
+                
+                XLSX.utils.book_append_sheet(wb, ws1, "详细数据");
+                XLSX.utils.book_append_sheet(wb, ws2, "用户汇总");
+                XLSX.utils.book_append_sheet(wb, ws3, "层级统计");
+                
+                const fileName = `汉诺塔_${userInfo.name}_${userInfo.birthdate}_${userInfo.class}_自适应.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+            } else {
+                // 单层模式数据处理
+                const fullData = gameData.map(data => {
+                    const gameTimeStat = levelTimes[data.game];
+                    const moveStat = {
                         totalMoves: gameTimeStat ? gameTimeStat.totalMoves : null,
                         totalTime: gameTimeStat ? gameTimeStat.totalTime : null
                     };
@@ -784,50 +1004,32 @@
                         overallTotalTime: overallStats.totalTime,
                         overallAverageMoveTime: overallStats.averageMoveTime
                     };
-                }
-            });
-            
-            // 添加用户信息汇总
-            const summaryData = {
-                姓名: userInfo.name,
-                性别: userInfo.gender,
-                生日: userInfo.birthdate,
-                班级: userInfo.group,
-                幼儿园: userInfo.class,
-                游戏模式: gameMode === 'adaptive' ? '自适应模式' : '单层模式',
-                最高层数: gameMode === 'adaptive' ? maxDifficulty : difficulty,
-                总用时: overallStats.totalTime,
-                总步数: overallStats.totalMoves,
-                平均每步用时: overallStats.averageMoveTime,
-            };
-            
-            // 创建一个新的工作簿
-            const wb = XLSX.utils.book_new();
-            
-            // 添加详细数据工作表
-            const ws1 = XLSX.utils.json_to_sheet(fullData);
-            XLSX.utils.book_append_sheet(wb, ws1, "详细数据");
-            
-            // 添加汇总信息工作表
-            const ws2 = XLSX.utils.json_to_sheet([summaryData]);
-            XLSX.utils.book_append_sheet(wb, ws2, "用户汇总");
-            
-            // 如果是自适应模式，添加层级统计工作表
-            if (gameMode === 'adaptive') {
-                const levelSummary = Object.keys(levelTimes).map(level => ({
-                    层数: `第${level}层`,
-                    总步数: levelStatistics[level].totalMoves,
-                    总用时: levelStatistics[level].totalTime,
-                    平均每步用时: levelStatistics[level].averageMoveTime
-                }));
-                const ws3 = XLSX.utils.json_to_sheet(levelSummary);
-                XLSX.utils.book_append_sheet(wb, ws3, "层级统计");
+                });
+                
+                const summaryData = {
+                    姓名: userInfo.name,
+                    性别: userInfo.gender,
+                    生日: userInfo.birthdate,
+                    班级: userInfo.group,
+                    幼儿园: userInfo.class,
+                    游戏模式: '单层模式',
+                    游戏层数: difficulty,
+                    总用时: overallStats.totalTime,
+                    总步数: overallStats.totalMoves,
+                    平均每步用时: overallStats.averageMoveTime,
+                };
+                
+                // 创建工作簿并添加工作表
+                const wb = XLSX.utils.book_new();
+                const ws1 = XLSX.utils.json_to_sheet(fullData);
+                const ws2 = XLSX.utils.json_to_sheet([summaryData]);
+                
+                XLSX.utils.book_append_sheet(wb, ws1, "详细数据");
+                XLSX.utils.book_append_sheet(wb, ws2, "用户汇总");
+                
+                const fileName = `汉诺塔_${userInfo.name}_${userInfo.birthdate}_${userInfo.class}_单层.xlsx`;
+                XLSX.writeFile(wb, fileName);
             }
-            
-            const modeSuffix = gameMode === 'adaptive' ? '_自适应' : '_单层';
-            const fileName = `汉诺塔_${userInfo.name}_${userInfo.birthdate}_${userInfo.class}${modeSuffix}.xlsx`;
-            
-            XLSX.writeFile(wb, fileName);
         }
 
         // 重置游戏
