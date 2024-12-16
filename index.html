@@ -3,133 +3,281 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>幼儿汉诺塔游戏研究</title>
+    <title>幼儿汉诺塔游戏研究系统</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
     <style>
+        /* 基础样式 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            background-color: #f0f8ff;
-            color: #333;
-            line-height: 1.6;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
         }
+
         .container {
             background-color: white;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            padding: 30px;
             margin: 20px;
-            max-width: 800px;
-            width: 100%;
+            max-width: 900px;
+            width: 95%;
         }
+
         h1, h2 {
-            color: #2c3e50;
             text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
         }
+
+        h1 {
+            font-size: 2.2em;
+            background: linear-gradient(45deg, #2c3e50, #3498db);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            padding: 10px;
+        }
+
+        /* 页面控制 */
         .page {
             display: none;
+            animation: fadeIn 0.5s ease;
         }
+
         .page.active {
             display: block;
         }
-        input, select, button {
+
+        /* 输入表单样式 */
+        input, select {
             width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 12px;
+            margin: 8px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             font-size: 16px;
+            transition: all 0.3s ease;
         }
+
+        input:focus, select:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        /* 按钮样式 */
         button {
+            width: 100%;
+            padding: 12px 24px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
             background-color: #3498db;
             color: white;
-            border: none;
+            font-size: 16px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s ease;
         }
+
         button:hover {
             background-color: #2980b9;
+            transform: translateY(-2px);
         }
+
         button:disabled {
             background-color: #bdc3c7;
             cursor: not-allowed;
         }
+
+        /* 模式选择样式 */
+        .mode-selector {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .mode-button {
+            flex: 1;
+            max-width: 200px;
+            padding: 20px;
+            font-size: 18px;
+            border-radius: 12px;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+
+        /* 游戏容器样式 */
         #game-container {
             display: flex;
             justify-content: space-around;
-            height: 300px;
+            height: 350px;
+            margin: 30px 0;
             position: relative;
-            margin-bottom: 20px;
+            background: linear-gradient(to bottom, #f5f7fa 0%, #e0e4e9 100%);
+            border-radius: 15px;
+            padding: 20px;
         }
+
         .tower {
             display: flex;
             flex-direction: column-reverse;
             align-items: center;
-            width: 150px;
-            height: 250px;
+            width: 180px;
+            height: 300px;
             position: relative;
             cursor: pointer;
         }
+
         .pole {
-            width: 10px;
-            height: 200px;
-            background-color: #95a5a6;
+            width: 12px;
+            height: 250px;
+            background: linear-gradient(to bottom, #95a5a6, #7f8c8d);
             position: absolute;
             bottom: 15px;
+            border-radius: 6px;
             z-index: 1;
         }
+
         .base {
-            width: 150px;
+            width: 180px;
             height: 15px;
-            background-color: #34495e;
+            background: linear-gradient(to right, #2c3e50, #34495e);
             position: absolute;
             bottom: 0;
             border-radius: 7.5px;
         }
+
         .disk-container {
             position: absolute;
             bottom: 15px;
             display: flex;
             flex-direction: column-reverse;
             align-items: center;
-            height: 200px;
+            height: 250px;
+            width: 180px;
         }
+
         .disk {
-            height: 25px;
-            border-radius: 12.5px;
+            height: 30px;
+            border-radius: 15px;
             margin: 2px;
             cursor: pointer;
             z-index: 2;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
         }
+
         .disk:hover {
             transform: scale(1.05);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
+
+        /* 计时器样式 */
+        .timer {
+            display: none;  /* 默认隐藏 */
+            font-size: 28px;
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        /* 控制面板样式 */
         #controls {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
         }
-        #controls button {
-            width: 30%;
-            margin-bottom: 10px;
+
+        #give-up-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
         }
-        @media (max-width: 600px) {
-            #controls button {
+
+        #reset-btn {
+            background: linear-gradient(45deg, #f1c40f, #f39c12);
+        }
+
+        #export-btn {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+        }
+
+        /* 层数信息显示 */
+        #level-info {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f5f7fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .mode-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .mode-button {
                 width: 100%;
+                max-width: none;
+            }
+
+            #game-container {
+                height: 300px;
+            }
+
+            .tower {
+                width: 120px;
+            }
+
+            .disk {
+                height: 25px;
+                font-size: 12px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>幼儿汉诺塔游戏研究</h1>
+        <h1>幼儿汉诺塔游戏研究系统</h1>
         
+        <!-- 用户信息页面 -->
         <div id="user-info-page" class="page active">
-            <h2>用户信息</h2>
+            <h2>用户信息登记</h2>
             <input type="text" id="name" placeholder="姓名" required>
             <select id="gender" required>
                 <option value="">选择性别</option>
@@ -137,36 +285,47 @@
                 <option value="女">女</option>
             </select>
             <input type="date" id="birthdate" required>
-            <input type="text" id="group" placeholder="组别" required>
-            <input type="text" id="class" placeholder="班级" required>
+            <input type="text" id="group" placeholder="班级" required>
+            <input type="text" id="class" placeholder="幼儿园" required>
             <button id="submit-info">提交信息</button>
         </div>
 
-        <div id="instructions-page" class="page">
-            <h2>游戏说明</h2>
-            <p>欢迎参与汉诺塔游戏！游戏规则如下：</p>
-            <ol>
-                <li>游戏开始时，所有圆盘按从大到小的顺序叠在左侧柱子上。</li>
-                <li>目标是将所有圆盘移动到右侧柱子，保持从大到小的顺序。</li>
-                <li>每次只能移动一个圆盘。</li>
-                <li>大圆盘不能放在小圆盘上面。</li>
-                <li>点击想要移动的圆盘，然后点击目标柱子来移动圆盘。</li>
-            </ol>
-            <p>准备好了吗？让我们开始吧！</p>
-            <button id="go-to-settings">进入游戏设置</button>
+        <!-- 模式选择页面 -->
+        <div id="mode-select-page" class="page">
+            <h2>选择游戏模式</h2>
+            <div class="mode-selector">
+                <button class="mode-button" id="single-mode">单层模式</button>
+                <button class="mode-button" id="adaptive-mode">自适应模式</button>
+            </div>
         </div>
 
+        <!-- 游戏设置页面 -->
         <div id="game-settings-page" class="page">
             <h2>游戏设置</h2>
-            <select id="difficulty">
-                <option value="3">3层</option>
-                <option value="4">4层</option>
-            </select>
-            <input type="number" id="game-count" min="1" value="3" placeholder="游戏次数">
+            <div id="single-mode-settings">
+                <select id="difficulty">
+                    <option value="2">2层</option>
+                    <option value="3">3层</option>
+                    <option value="4">4层</option>
+                    <option value="5">5层</option>
+                </select>
+                <input type="number" id="game-count" min="1" value="1" placeholder="游戏次数">
+            </div>
+            <div id="adaptive-mode-settings" style="display: none;">
+                <select id="max-difficulty">
+                    <option value="3">最高3层</option>
+                    <option value="4">最高4层</option>
+                    <option value="5">最高5层</option>
+                </select>
+                <input type="number" id="time-limit" min="1" value="5" placeholder="时间限制（分钟）">
+            </div>
             <button id="start-btn">开始游戏</button>
         </div>
 
+        <!-- 游戏页面 -->
         <div id="game-page" class="page">
+            <div id="timer" class="timer"></div>
+            <div id="level-info"></div>
             <div id="game-container">
                 <div class="tower" id="tower1">
                     <div class="pole"></div>
@@ -186,37 +345,66 @@
             </div>
             <div id="controls">
                 <button id="reset-btn">重置</button>
+                <button id="give-up-btn" style="display: none;">放弃</button>
                 <button id="home-btn">返回主页</button>
-                <button id="export-btn" style="display:none;">导出数据</button>
+                <button id="export-btn" style="display: none;">导出数据</button>
             </div>
         </div>
     </div>
 
     <script>
+        // 游戏状态变量
+        let gameMode = 'single';
         let gameData = [];
         let currentGame = 1;
-        let totalGames = 3;
-        let startTime, moveStartTime;
+        let totalGames = 1;
         let selectedDisk = null;
         let moveCount = 0;
-        let difficulty = 3;
+        let difficulty = 2;
+        let maxDifficulty = 3;
+        let currentLevel = 2;
         let userInfo = {};
+        let timer = null;
+        let timeLimit = 300;
+        let towers = [];
+        let startTime;             // 总体游戏开始时间
+        let levelStartTime;        // 当前层级开始时间
+        let moveStartTime;         // 移动开始时间
+        let levelData = {};        // 每层的详细数据
+        let levelTimes = {};       // 新增：记录每层的时间统计
 
-        const towers = [
-            document.getElementById('tower1'),
-            document.getElementById('tower2'),
-            document.getElementById('tower3')
-        ];
+        // 初始化函数
+        function init() {
+            towers = [
+                document.getElementById('tower1'),
+                document.getElementById('tower2'),
+                document.getElementById('tower3')
+            ];
 
-        const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f'];
-        const diskLetters = ['A', 'B', 'C', 'D'];
+            // 事件监听器设置
+            document.getElementById('submit-info').addEventListener('click', submitUserInfo);
+            document.getElementById('single-mode').addEventListener('click', () => selectMode('single'));
+            document.getElementById('adaptive-mode').addEventListener('click', () => selectMode('adaptive'));
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('reset-btn').addEventListener('click', resetGame);
+            document.getElementById('give-up-btn').addEventListener('click', giveUp);
+            document.getElementById('home-btn').addEventListener('click', goHome);
+            document.getElementById('export-btn').addEventListener('click', exportGameData);
 
+            // 塔的点击事件
+            towers.forEach(tower => {
+                tower.addEventListener('click', handleTowerClick);
+            });
+        }
+
+        // 页面切换函数
         function showPage(pageId) {
             document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
         }
 
-        document.getElementById('submit-info').addEventListener('click', function() {
+        // 用户信息提交
+        function submitUserInfo() {
             const name = document.getElementById('name').value;
             const gender = document.getElementById('gender').value;
             const birthdate = document.getElementById('birthdate').value;
@@ -225,127 +413,567 @@
 
             if (name && gender && birthdate && group && classValue) {
                 userInfo = { name, gender, birthdate, group, class: classValue };
-                showPage('instructions-page');
+                showPage('mode-select-page');
             } else {
                 alert('请填写所有必填项！');
             }
-        });
+        }
 
-        document.getElementById('go-to-settings').addEventListener('click', function() {
+        // 模式选择
+        function selectMode(mode) {
+            gameMode = mode;
+            document.getElementById('single-mode-settings').style.display = 
+                mode === 'single' ? 'block' : 'none';
+            document.getElementById('adaptive-mode-settings').style.display = 
+                mode === 'adaptive' ? 'block' : 'none';
             showPage('game-settings-page');
-        });
+        }
 
+// 创建圆盘
         function createDisk(size) {
             const disk = document.createElement('div');
             disk.classList.add('disk');
-            disk.style.width = `${size * 30}px`;
-            disk.style.backgroundColor = colors[size - 1];
-            disk.dataset.letter = diskLetters[size - 1];
+            disk.style.width = `${size * 35}px`;
+            // 使用渐变色提升视觉效果
+            const colors = [
+                'linear-gradient(45deg, #e74c3c, #c0392b)',
+                'linear-gradient(45deg, #3498db, #2980b9)',
+                'linear-gradient(45deg, #2ecc71, #27ae60)',
+                'linear-gradient(45deg, #f1c40f, #f39c12)',
+                'linear-gradient(45deg, #9b59b6, #8e44ad)'
+            ];
+            disk.style.background = colors[size - 1];
+            disk.dataset.size = size;
+            disk.textContent = String.fromCharCode(64 + size); // A, B, C, D, E
             return disk;
         }
 
+        // 初始化游戏
         function initializeGame() {
+            stopTimer();
             towers.forEach(tower => tower.querySelector('.disk-container').innerHTML = '');
-            for (let i = difficulty; i > 0; i--) {
+            
+            const currentDifficulty = gameMode === 'adaptive' ? currentLevel : difficulty;
+            
+            // 创建圆盘
+            for (let i = currentDifficulty; i > 0; i--) {
                 towers[0].querySelector('.disk-container').appendChild(createDisk(i));
             }
+            
             moveCount = 0;
-            startTime = new Date();
-            document.getElementById('export-btn').style.display = 'none';
+            
+            if (gameMode === 'adaptive') {
+                // 自适应模式的时间记录
+                startTime = new Date();
+                levelStartTime = new Date();
+                
+                if (!levelTimes[currentLevel]) {
+                    levelTimes[currentLevel] = {
+                        startTime: new Date(),
+                        endTime: null,
+                        totalTime: 0
+                    };
+                }
+            } else {
+                // 单层模式的时间和移动次数记录
+                startTime = new Date();
+                if (!levelTimes[currentGame]) {
+                    levelTimes[currentGame] = {
+                        level: currentDifficulty,
+                        startTime: startTime,
+                        endTime: null,
+                        totalTime: 0,
+                        totalMoves: 0,
+                        gameNumber: currentGame
+                    };
+                }
+            }
+            
+            updateGameInterface();
+            
+            if (gameMode === 'adaptive') {
+                startTimer();
+            }
         }
 
+        // 更新游戏界面
+        function updateGameInterface() {
+            const timerElement = document.getElementById('timer');
+            if (gameMode === 'adaptive') {
+                document.getElementById('level-info').textContent = `当前层数: ${currentLevel}`;
+                document.getElementById('give-up-btn').style.display = 'inline-block';
+                timerElement.style.display = 'block';  // 显示计时器
+            } else {
+                document.getElementById('level-info').textContent = `第 ${currentGame}/${totalGames} 次游戏`;
+                document.getElementById('give-up-btn').style.display = 'none';
+                timerElement.style.display = 'none';  // 隐藏计时器
+            }
+        }
+
+        // 计时器功能
+        function startTimer() {
+            let remainingTime = timeLimit;
+            updateTimerDisplay(remainingTime);
+            
+            timer = setInterval(() => {
+                remainingTime--;
+                updateTimerDisplay(remainingTime);
+                
+                if (remainingTime <= 0) {
+                    endGame('timeout');
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay(remainingTime) {
+            const minutes = Math.floor(remainingTime / 60);
+            const seconds = remainingTime % 60;
+            document.getElementById('timer').textContent = 
+                `剩余时间: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function stopTimer() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+
+        // 处理塔的点击事件
+        function handleTowerClick(event) {
+            const clickedDisk = event.target.closest('.disk');
+            const tower = event.currentTarget;
+            
+            if (clickedDisk && clickedDisk === tower.querySelector('.disk-container').lastElementChild) {
+                selectDisk(clickedDisk);
+            } else {
+                moveDisk(tower);
+            }
+        }
+
+        // 选择圆盘
         function selectDisk(disk) {
             if (selectedDisk) {
                 selectedDisk.style.opacity = '1';
+                selectedDisk.style.transform = 'scale(1)';
             }
             selectedDisk = disk;
-            selectedDisk.style.opacity = '0.6';
+            selectedDisk.style.opacity = '0.7';
+            selectedDisk.style.transform = 'scale(1.1)';
             moveStartTime = new Date();
         }
 
+        // 移动圆盘
         function moveDisk(toTower) {
             if (!selectedDisk) return;
-
+            
             const fromTower = selectedDisk.closest('.tower');
             if (fromTower === toTower) {
                 selectedDisk.style.opacity = '1';
+                selectedDisk.style.transform = 'scale(1)';
                 selectedDisk = null;
                 return;
             }
-
+            
             const toContainer = toTower.querySelector('.disk-container');
-            if (toContainer.children.length === 0 || 
-                parseInt(selectedDisk.style.width) < parseInt(toContainer.lastElementChild.style.width)) {
-                toContainer.appendChild(selectedDisk);
-                moveCount++;
-
-                const moveEndTime = new Date();
-                const moveData = {
-                    game: currentGame,
-                    move: moveCount,
-                    from: towers.indexOf(fromTower) + 1,
-                    to: towers.indexOf(toTower) + 1,
-                    disk: selectedDisk.dataset.letter,
-                    timeElapsed: (moveEndTime - moveStartTime) / 1000
-                };
-                gameData.push(moveData);
-
-                if (towers[2].querySelector('.disk-container').children.length === difficulty) {
-                    const endTime = new Date();
-                    alert(`恭喜完成第${currentGame}次游戏！用时：${(endTime - startTime) / 1000}秒，移动次数：${moveCount}`);
-                    if (currentGame < totalGames) {
-                        currentGame++;
-                        setTimeout(initializeGame, 1000);
-                    } else {
-                        alert('您已完成所有游戏！');
-                        document.getElementById('export-btn').style.display = 'inline';
-                    }
-                }
+            const isValidMove = !toContainer.lastElementChild || 
+                parseInt(selectedDisk.dataset.size) < parseInt(toContainer.lastElementChild.dataset.size);
+            
+            if (isValidMove) {
+                executeMove(toContainer, fromTower, toTower);
+                checkGameProgress();
+            } else {
+                invalidMoveAnimation();
             }
-
+            
             selectedDisk.style.opacity = '1';
+            selectedDisk.style.transform = 'scale(1)';
             selectedDisk = null;
         }
 
-        towers.forEach(tower => {
-            tower.addEventListener('click', (e) => {
-                const clickedDisk = e.target.closest('.disk');
-                if (clickedDisk && clickedDisk === tower.querySelector('.disk-container').lastElementChild) {
-                    selectDisk(clickedDisk);
+        // 执行移动
+        function executeMove(toContainer, fromTower, toTower) {
+            toContainer.appendChild(selectedDisk);
+            moveCount++;
+            
+            const moveEndTime = new Date();
+            const currentDifficulty = gameMode === 'adaptive' ? currentLevel : difficulty;
+            
+            const moveData = {
+                game: currentGame,
+                level: currentDifficulty,
+                move: moveCount,
+                from: towers.indexOf(fromTower) + 1,
+                to: towers.indexOf(toTower) + 1,
+                disk: selectedDisk.textContent,
+                timeElapsed: (moveEndTime - moveStartTime) / 1000,
+                levelTimeElapsed: (moveEndTime - levelStartTime) / 1000
+            };
+        
+            // 记录到总体游戏数据
+            gameData.push(moveData);
+            
+            // 分别处理两种模式的数据记录
+            if (gameMode === 'adaptive') {
+                // 自适应模式：记录到对应层级
+                if (!levelData[currentLevel]) {
+                    levelData[currentLevel] = [];
+                }
+                levelData[currentLevel].push(moveData);
+            } else {
+                // 单层模式：记录到对应游戏次数
+                if (!levelData[difficulty]) {
+                    levelData[difficulty] = [];
+                }
+                levelData[difficulty].push(moveData);
+                // 更新当前游戏的移动次数统计
+                if (levelTimes[currentGame]) {
+                    levelTimes[currentGame].totalMoves = moveCount;
+                }
+            }
+        }
+
+        // 检查游戏进度
+        function checkGameProgress() {
+            const currentDifficulty = gameMode === 'adaptive' ? currentLevel : difficulty;
+            if (towers[2].querySelector('.disk-container').children.length === currentDifficulty) {
+                const endTime = new Date();
+                
+                if (gameMode === 'adaptive') {
+                    handleAdaptiveLevelComplete();
                 } else {
-                    moveDisk(tower);
+                    handleSingleModeComplete(endTime);  // 添加endTime参数
+                }
+            }
+        }
+
+        // 处理自适应模式关卡完成
+        function handleAdaptiveLevelComplete() {
+            const endTime = new Date();
+            
+            // 更新当前层级的完成时间
+            levelTimes[currentLevel].endTime = endTime;
+            levelTimes[currentLevel].totalTime = 
+                (endTime - levelTimes[currentLevel].startTime) / 1000;
+            
+            // 计算当前层的统计数据
+            if (!levelData[currentLevel]) {
+                levelData[currentLevel] = [];
+            }
+            
+            if (currentLevel < maxDifficulty) {
+                alert(`恭喜完成 ${currentLevel} 层！准备开始 ${currentLevel + 1} 层挑战。`);
+                currentLevel++;
+                setTimeout(initializeGame, 1000);
+            } else {
+                endGame('complete');
+            }
+        }
+
+        // 处理单层模式游戏完成
+        function handleSingleModeComplete(endTime) {
+            // 记录当前游戏的完成数据
+            levelTimes[currentGame].endTime = endTime;
+            levelTimes[currentGame].totalTime = (endTime - levelTimes[currentGame].startTime) / 1000;
+            levelTimes[currentGame].totalMoves = moveCount;  // 确保记录最终的移动次数
+            
+            // 更新统计数据
+            if (!levelData[difficulty]) {
+                levelData[difficulty] = [];
+            }
+            
+            // 添加本次游戏的统计数据
+            const gameStats = {
+                game: currentGame,
+                level: difficulty,
+                totalMoves: levelTimes[currentGame].totalMoves,
+                totalTime: levelTimes[currentGame].totalTime,
+                avgMoveTime: levelTimes[currentGame].totalTime / levelTimes[currentGame].totalMoves
+            };
+            levelData[difficulty].push(gameStats);
+        
+            if (currentGame < totalGames) {
+                alert(`恭喜完成第 ${currentGame} 次游戏！\n总步数：${gameStats.totalMoves} 步\n用时：${gameStats.totalTime.toFixed(2)}秒`);
+                currentGame++;
+                setTimeout(initializeGame, 1000);
+            } else {
+                const finalStats = calculateOverallStatistics();
+                alert(`恭喜完成所有 ${totalGames} 次游戏！\n平均步数：${(finalStats.totalMoves/totalGames).toFixed(1)} 步\n平均用时：${(finalStats.totalTime/totalGames).toFixed(2)}秒`);
+                document.getElementById('export-btn').style.display = 'inline-block';
+                document.getElementById('home-btn').style.display = 'inline-block';
+                exportGameData();
+            }
+        }
+
+        // 游戏结束处理
+        function endGame(reason) {
+            stopTimer();
+            let message = '';
+            
+            switch(reason) {
+                case 'timeout':
+                    message = `时间到！您成功完成了 ${currentLevel - 1} 层`;
+                    break;
+                case 'give-up':
+                    message = `游戏结束！您成功完成了 ${currentLevel - 1} 层`;
+                    break;
+                case 'complete':
+                    message = `恭喜！您完成了所有 ${currentLevel} 层的挑战！`;
+                    break;
+            }
+            
+            alert(message);
+            document.getElementById('export-btn').style.display = 'inline-block';
+            
+            // 自动导出数据
+            setTimeout(exportGameData, 500);
+        }
+
+        // 导出游戏数据
+        function exportGameData() {
+            const levelStatistics = calculateLevelStatistics();
+            const overallStats = calculateOverallStatistics();
+            
+            const fullData = gameData.map(data => {
+                let gameTimeStat, moveStat;
+                
+                if (gameMode === 'adaptive') {
+                    gameTimeStat = levelTimes[data.level];
+                    moveStat = levelStatistics[data.level];
+                    
+                    return {
+                        ...userInfo,
+                        mode: gameMode,
+                        maxLevel: maxDifficulty,
+                        timeLimit: timeLimit,
+                        currentLevel: data.level,  // 添加当前层数标记
+                        levelIdentifier: `第${data.level}层`,  // 添加层数标识
+                        ...data,
+                        timestamp: new Date().toISOString(),
+                        // 层级数据
+                        currentLevelTotalMoves: moveStat.totalMoves,
+                        currentLevelTotalTime: gameTimeStat ? gameTimeStat.totalTime : null,
+                        currentLevelAverageMoveTime: moveStat.averageMoveTime,
+                        // 总体数据
+                        overallTotalMoves: overallStats.totalMoves,
+                        overallTotalTime: overallStats.totalTime,
+                        overallAverageMoveTime: overallStats.averageMoveTime
+                    };
+                } else {
+                    // 单层模式的数据处理保持不变
+                    gameTimeStat = levelTimes[data.game];
+                    moveStat = {
+                        totalMoves: gameTimeStat ? gameTimeStat.totalMoves : null,
+                        totalTime: gameTimeStat ? gameTimeStat.totalTime : null
+                    };
+                    
+                    return {
+                        ...userInfo,
+                        mode: gameMode,
+                        maxLevel: difficulty,
+                        timeLimit: 'NA',
+                        ...data,
+                        timestamp: new Date().toISOString(),
+                        gameNumber: data.game,
+                        gameTotalMoves: moveStat.totalMoves,
+                        gameTotalTime: gameTimeStat ? gameTimeStat.totalTime : null,
+                        levelTotalMoves: levelStatistics[data.level].totalMoves,
+                        levelTotalTime: levelStatistics[data.level].totalTime,
+                        levelAverageMoveTime: levelStatistics[data.level].averageMoveTime,
+                        overallTotalMoves: overallStats.totalMoves,
+                        overallTotalTime: overallStats.totalTime,
+                        overallAverageMoveTime: overallStats.averageMoveTime
+                    };
                 }
             });
-        });
+            
+            // 添加用户信息汇总
+            const summaryData = {
+                姓名: userInfo.name,
+                性别: userInfo.gender,
+                生日: userInfo.birthdate,
+                班级: userInfo.group,
+                幼儿园: userInfo.class,
+                游戏模式: gameMode === 'adaptive' ? '自适应模式' : '单层模式',
+                最高层数: gameMode === 'adaptive' ? maxDifficulty : difficulty,
+                总用时: overallStats.totalTime,
+                总步数: overallStats.totalMoves,
+                平均每步用时: overallStats.averageMoveTime,
+            };
+            
+            // 创建一个新的工作簿
+            const wb = XLSX.utils.book_new();
+            
+            // 添加详细数据工作表
+            const ws1 = XLSX.utils.json_to_sheet(fullData);
+            XLSX.utils.book_append_sheet(wb, ws1, "详细数据");
+            
+            // 添加汇总信息工作表
+            const ws2 = XLSX.utils.json_to_sheet([summaryData]);
+            XLSX.utils.book_append_sheet(wb, ws2, "用户汇总");
+            
+            // 如果是自适应模式，添加层级统计工作表
+            if (gameMode === 'adaptive') {
+                const levelSummary = Object.keys(levelTimes).map(level => ({
+                    层数: `第${level}层`,
+                    总步数: levelStatistics[level].totalMoves,
+                    总用时: levelStatistics[level].totalTime,
+                    平均每步用时: levelStatistics[level].averageMoveTime
+                }));
+                const ws3 = XLSX.utils.json_to_sheet(levelSummary);
+                XLSX.utils.book_append_sheet(wb, ws3, "层级统计");
+            }
+            
+            const modeSuffix = gameMode === 'adaptive' ? '_自适应' : '_单层';
+            const fileName = `汉诺塔_${userInfo.name}_${userInfo.birthdate}_${userInfo.class}${modeSuffix}.xlsx`;
+            
+            XLSX.writeFile(wb, fileName);
+        }
 
-        document.getElementById('start-btn').addEventListener('click', () => {
-            difficulty = parseInt(document.getElementById('difficulty').value);
-            totalGames = parseInt(document.getElementById('game-count').value);
+        // 重置游戏
+        function resetGame() {
+            if (confirm('确定要重置当前游戏吗？')) {
+                initializeGame();
+            }
+        }
+
+        // 放弃游戏
+        function giveUp() {
+            if (confirm('确定要放弃当前层数吗？所有数据将保存到上一层。')) {
+                endGame('give-up');
+            }
+        }
+
+        // 返回主页
+        function goHome() {
+            if (confirm('确定要返回主页吗？当前游戏进度将丢失。')) {
+                stopTimer();
+                gameData = [];
+                showPage('user-info-page');
+            }
+        }
+
+        // 开始游戏
+        function startGame() {
+            if (gameMode === 'adaptive') {
+                maxDifficulty = parseInt(document.getElementById('max-difficulty').value);
+                timeLimit = parseInt(document.getElementById('time-limit').value) * 60;
+                currentLevel = 2; // 从2层开始
+            } else {
+                difficulty = parseInt(document.getElementById('difficulty').value);
+                totalGames = parseInt(document.getElementById('game-count').value);
+            }
+            
             gameData = [];
             currentGame = 1;
             document.getElementById('export-btn').style.display = 'none';
             showPage('game-page');
             initializeGame();
-        });
+        }
 
-        document.getElementById('reset-btn').addEventListener('click', initializeGame);
+        // 无效移动动画
+        function invalidMoveAnimation() {
+            selectedDisk.style.animation = 'shake 0.5s ease';
+            setTimeout(() => {
+                selectedDisk.style.animation = '';
+            }, 500);
+        }
+        
+        // 计算每层数据统计
+        function calculateLevelStatistics() {
+            const stats = {};
+            
+            // 处理每个难度层级的数据
+            Object.keys(levelData).forEach(level => {
+                const levelMoves = levelData[level];
+                const totalMoves = levelMoves.length;
+                const levelTime = levelTimes[level] ? levelTimes[level].totalTime : 0;
+                
+                stats[level] = {
+                    totalMoves,
+                    totalTime: levelTime.toFixed(2),
+                    averageMoveTime: (levelTime / totalMoves).toFixed(2)
+                };
+            });
+            
+            return stats;
+        }
 
-        document.getElementById('home-btn').addEventListener('click', () => {
+        // 计算总体完成统计
+        function calculateOverallStatistics() {
+            const totalTime = Object.values(levelTimes).reduce((sum, level) => 
+                sum + (level.totalTime || 0), 0);
+            const totalMoves = gameData.length;
+            
+            return {
+                totalMoves: totalMoves,
+                totalTime: totalTime.toFixed(2),
+                averageMoveTime: (totalTime / totalMoves).toFixed(2)
+            };
+        }
+
+        // 返回主页函数
+        function goHome() {
             if (confirm('确定要返回主页吗？当前游戏进度将丢失。')) {
+                // 停止计时器
+                stopTimer();
+                
+                // 重置所有游戏数据
+                gameData = [];           // 清空游戏数据
+                levelData = {};          // 清空层级数据
+                levelTimes = {};         // 清空时间统计
+                currentGame = 1;         // 重置当前游戏次数
+                totalGames = 1;          // 重置总游戏次数
+                moveCount = 0;           // 重置移动次数
+                difficulty = 2;          // 重置难度
+                maxDifficulty = 3;       // 重置最大难度
+                currentLevel = 2;        // 重置当前层级
+                startTime = null;        // 清空开始时间
+                levelStartTime = null;   // 清空层级开始时间
+                moveStartTime = null;    // 清空移动开始时间
+                selectedDisk = null;     // 清空选中圆盘
+                
+                // 重置界面元素
+                document.getElementById('export-btn').style.display = 'none';
+                document.getElementById('timer').style.display = 'none';
+                document.getElementById('give-up-btn').style.display = 'none';
+                
+                // 清空塔内容
+                towers.forEach(tower => {
+                    const container = tower.querySelector('.disk-container');
+                    if (container) {
+                        container.innerHTML = '';
+                    }
+                });
+                
+                // 重置输入框
+                document.getElementById('name').value = '';
+                document.getElementById('gender').value = '';
+                document.getElementById('birthdate').value = '';
+                document.getElementById('group').value = '';
+                document.getElementById('class').value = '';
+                
+                // 重置游戏设置
+                if (document.getElementById('difficulty')) {
+                    document.getElementById('difficulty').value = '2';
+                }
+                if (document.getElementById('game-count')) {
+                    document.getElementById('game-count').value = '1';
+                }
+                if (document.getElementById('max-difficulty')) {
+                    document.getElementById('max-difficulty').value = '3';
+                }
+                if (document.getElementById('time-limit')) {
+                    document.getElementById('time-limit').value = '5';
+                }
+                
+                // 切换到主页
                 showPage('user-info-page');
             }
-        });
+        }
 
-        document.getElementById('export-btn').addEventListener('click', () => {
-            const fullData = gameData.map(data => ({
-                ...userInfo,
-                ...data
-            }));
-            const ws = XLSX.utils.json_to_sheet(fullData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "游戏数据");
-            XLSX.writeFile(wb, "hanoi_tower_data.xlsx");
-        });
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
